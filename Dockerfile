@@ -3,18 +3,14 @@ FROM eclipse-temurin:17-jdk-alpine as build
 
 WORKDIR /workspace/app
 
-COPY mvnw .
-COPY .mvn .mvn
 COPY pom.xml .
+COPY .mvn .mvn
 COPY src src
 
-# Make mvnw executable
-RUN chmod +x mvnw
+RUN apk add --no-cache maven
 
-# Build the application
-RUN ./mvnw install -DskipTests
+RUN mvn clean package -DskipTests
 
-# Extract the built jar
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 
 # Production stage

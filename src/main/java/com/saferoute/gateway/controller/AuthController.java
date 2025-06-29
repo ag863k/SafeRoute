@@ -1,5 +1,6 @@
 package com.saferoute.gateway.controller;
 
+import com.saferoute.gateway.dto.LoginRequest;
 import com.saferoute.gateway.security.JwtTokenUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

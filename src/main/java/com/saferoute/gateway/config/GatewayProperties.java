@@ -6,11 +6,6 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Configuration properties for SafeRoute Gateway
- * 
- * @author SafeRoute Team
- */
 @Component
 @ConfigurationProperties(prefix = "saferoute")
 public class GatewayProperties {
@@ -27,7 +22,7 @@ public class GatewayProperties {
     }
 
     public static class Jwt {
-        private String secret = "mySecretKey123456789abcdefghijklmnopqrstuvwxyz";
+        private String secret = "${JWT_SECRET:changeme123456789abcdefghijklmnopqrstuvwxyz}";
         private long expiration = 86400000; // 24 hours
 
         public String getSecret() {

@@ -32,6 +32,7 @@ if %errorlevel% neq 0 (
 echo Docker Compose found
 
 echo Building SafeRoute Gateway...
+set MAVEN_OPTS=--enable-native-access=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED
 call mvn clean package -DskipTests
 
 if %errorlevel% neq 0 (

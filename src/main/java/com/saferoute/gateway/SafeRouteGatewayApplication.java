@@ -21,10 +21,12 @@ public class SafeRouteGatewayApplication {
                 .getFirst("X-Forwarded-For");
             
             if (clientIp == null || clientIp.isEmpty()) {
-                clientIp = exchange.getRequest()
-                    .getRemoteAddress() != null ? 
-                    exchange.getRequest().getRemoteAddress().getAddress().getHostAddress() : 
-                    "unknown";
+                if (exchange.getRequest().getRemoteAddress() != null && 
+                    exchange.getRequest().getRemoteAddress().getAddress() != null) {
+                    clientIp = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+                } else {
+                    clientIp = "unknown";
+                }
             }
             
             return Mono.just(clientIp);
