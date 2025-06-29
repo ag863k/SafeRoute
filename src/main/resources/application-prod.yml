@@ -1,0 +1,88 @@
+# Production environment configuration
+spring:
+  application:
+    name: saferoute-api-gateway
+  
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+      database: 0
+      password: ${REDIS_PASSWORD:}
+  
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://user-service:8080}
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: RateLimiter
+              args:
+                "[redis-rate-limiter.replenish-rate]": 20
+                "[redis-rate-limiter.burst-capacity]": 40
+                "[redis-rate-limiter.requested-tokens]": 1
+            - name: CircuitBreaker
+              args:
+                name: user-service-cb
+                fallback-uri: forward:/fallback/user-service
+        
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://order-service:8080}
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - name: RateLimiter
+              args:
+                "[redis-rate-limiter.replenish-rate]": 15
+                "[redis-rate-limiter.burst-capacity]": 30
+                "[redis-rate-limiter.requested-tokens]": 1
+            - name: CircuitBreaker
+              args:
+                name: order-service-cb
+                fallback-uri: forward:/fallback/order-service
+        
+        - id: product-service
+          uri: ${PRODUCT_SERVICE_URL:http://product-service:8080}
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - name: RateLimiter
+              args:
+                "[redis-rate-limiter.replenish-rate]": 30
+                "[redis-rate-limiter.burst-capacity]": 60
+                "[redis-rate-limiter.requested-tokens]": 1
+            - name: CircuitBreaker
+              args:
+                name: product-service-cb
+                fallback-uri: forward:/fallback/product-service
+
+# Production-specific settings
+saferoute:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:3600000} # 1 hour in production
+
+logging:
+  level:
+    "[org.springframework.cloud.gateway]": WARN
+    "[org.springframework.web.reactive]": WARN
+    "[io.github.resilience4j]": INFO
+    "[com.saferoute]": INFO
+    root: WARN
+  file:
+    name: logs/saferoute-gateway.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized

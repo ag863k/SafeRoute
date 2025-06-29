@@ -1,0 +1,193 @@
+# SafeRoute API Gateway Configuration
+
+# Server Configuration
+server:
+  port: 8080
+  shutdown: graceful
+
+# Application Configuration
+spring:
+  application:
+    name: saferoute-api-gateway
+  
+  # Redis Configuration for Rate Limiting
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      database: 0
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+  
+  # Cloud Gateway Configuration
+  cloud:
+    gateway:
+      routes:
+        # User Service Routes
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - name: RateLimiter
+              args:
+                "[redis-rate-limiter.replenish-rate]": 10
+                "[redis-rate-limiter.burst-capacity]": 20
+                "[redis-rate-limiter.requested-tokens]": 1
+            - name: CircuitBreaker
+              args:
+                name: user-service-cb
+                fallback-uri: forward:/fallback/user-service
+        
+        # Order Service Routes
+        - id: order-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - name: RateLimiter
+              args:
+                "[redis-rate-limiter.replenish-rate]": 5
+                "[redis-rate-limiter.burst-capacity]": 10
+                "[redis-rate-limiter.requested-tokens]": 1
+            - name: CircuitBreaker
+              args:
+                name: order-service-cb
+                fallback-uri: forward:/fallback/order-service
+        
+        # Product Service Routes
+        - id: product-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - name: RateLimiter
+              args:
+                "[redis-rate-limiter.replenish-rate]": 15
+                "[redis-rate-limiter.burst-capacity]": 30
+                "[redis-rate-limiter.requested-tokens]": 1
+            - name: CircuitBreaker
+              args:
+                name: product-service-cb
+                fallback-uri: forward:/fallback/product-service
+      
+      # Global CORS Configuration
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: false
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      user-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+      
+      order-service-cb:
+        sliding-window-size: 10
+        failure-rate-threshold: 60
+        wait-duration-in-open-state: 45s
+        permitted-number-of-calls-in-half-open-state: 3
+        minimum-number-of-calls: 5
+        automatic-transition-from-open-to-half-open-enabled: true
+      
+      product-service-cb:
+        sliding-window-size: 15
+        failure-rate-threshold: 40
+        wait-duration-in-open-state: 20s
+        permitted-number-of-calls-in-half-open-state: 5
+        minimum-number-of-calls: 8
+        automatic-transition-from-open-to-half-open-enabled: true
+  
+  # Timeout Configuration
+  timelimiter:
+    instances:
+      user-service-cb:
+        timeout-duration: 3s
+      order-service-cb:
+        timeout-duration: 5s
+      product-service-cb:
+        timeout-duration: 2s
+
+# JWT Configuration
+saferoute:
+  jwt:
+    secret: "${JWT_SECRET:mySecretKey123456789abcdefghijklmnopqrstuvwxyz}"
+    expiration: 86400000 # 24 hours in milliseconds
+  
+  # Rate Limiting Configuration
+  rate-limit:
+    default:
+      requests-per-minute: 60
+      burst-capacity: 100
+    
+    # Service-specific rate limits
+    services:
+      user-service:
+        requests-per-minute: 100
+        burst-capacity: 200
+      order-service:
+        requests-per-minute: 50
+        burst-capacity: 100
+      product-service:
+        requests-per-minute: 150
+        burst-capacity: 300
+
+# Actuator Configuration for Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    "[org.springframework.cloud.gateway]": INFO
+    "[org.springframework.web.reactive]": INFO
+    "[io.github.resilience4j]": INFO
+    "[com.saferoute]": INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# SpringDoc OpenAPI Configuration
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    config-url: /api-docs/swagger-config
+    url: /api-docs
+  cache:
+    disabled: true

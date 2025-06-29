@@ -1,0 +1,83 @@
+# Target directory
+target/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application logs
+logs/
+*.log
+*.log.*
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Secrets and sensitive data
+**/secrets/
+**/keys/
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.truststore
+application-secret.yml
+application-secrets.yml
+jwt-secret.txt
+private-key.txt
+public-key.txt
+
+# Database credentials
+database.properties
+db-config.properties
+
+# API keys and tokens
+api-keys.properties
+tokens.properties
+*-secret.properties
+
+# SSL certificates
+*.crt
+*.cert
+*.ca-bundle
+
+# Docker
+.docker/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Spring Boot
+spring-boot-*.log
+
+# Redis dump
+dump.rdb
+
+# Monitoring data
+monitoring/grafana/data/
+monitoring/prometheus/data/
+
+# Build artifacts
+*.jar
+*.war
+*.ear

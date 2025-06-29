@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Redis for Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: saferoute-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - saferoute-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # SafeRoute API Gateway
+  api-gateway:
+    build: .
+    container_name: saferoute-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - JWT_SECRET=mySecretKey123456789abcdefghijklmnopqrstuvwxyz
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - saferoute-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Mock User Service
+  user-service:
+    image: mockoon/cli:latest
+    container_name: saferoute-user-service
+    ports:
+      - "8081:3000"
+    volumes:
+      - ./mock-services/user-service.json:/data/user-service.json
+    command: ["--data", "/data/user-service.json", "--port", "3000"]
+    networks:
+      - saferoute-network
+
+  # Mock Order Service
+  order-service:
+    image: mockoon/cli:latest
+    container_name: saferoute-order-service
+    ports:
+      - "8082:3000"
+    volumes:
+      - ./mock-services/order-service.json:/data/order-service.json
+    command: ["--data", "/data/order-service.json", "--port", "3000"]
+    networks:
+      - saferoute-network
+
+  # Mock Product Service
+  product-service:
+    image: mockoon/cli:latest
+    container_name: saferoute-product-service
+    ports:
+      - "8083:3000"
+    volumes:
+      - ./mock-services/product-service.json:/data/product-service.json
+    command: ["--data", "/data/product-service.json", "--port", "3000"]
+    networks:
+      - saferoute-network
+
+  # Prometheus for Metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: saferoute-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - saferoute-network
+
+  # Grafana for Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: saferoute-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - saferoute-network
+
+networks:
+  saferoute-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
