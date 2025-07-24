@@ -13,65 +13,32 @@ import java.time.Duration;
 @Configuration
 public class GatewayCircuitBreakerConfig {
 
+    private static final int DEFAULT_SLIDING_WINDOW_SIZE = 10;
+    private static final int DEFAULT_PERMITTED_CALLS_IN_HALF_OPEN = 3;
+    private static final float DEFAULT_FAILURE_RATE_THRESHOLD = 50.0f;
+    private static final Duration DEFAULT_WAIT_DURATION_IN_OPEN = Duration.ofSeconds(30);
+    private static final float DEFAULT_SLOW_CALL_RATE_THRESHOLD = 50.0f;
+    private static final Duration DEFAULT_SLOW_CALL_DURATION_THRESHOLD = Duration.ofSeconds(2);
+    private static final Duration DEFAULT_TIMEOUT_DURATION = Duration.ofSeconds(3);
+
     @Bean
     public Customizer<ReactiveResilience4JCircuitBreakerFactory> defaultCustomizer() {
+        var circuitBreakerConfig = CircuitBreakerConfig.custom()
+            .slidingWindowSize(DEFAULT_SLIDING_WINDOW_SIZE)
+            .permittedNumberOfCallsInHalfOpenState(DEFAULT_PERMITTED_CALLS_IN_HALF_OPEN)
+            .failureRateThreshold(DEFAULT_FAILURE_RATE_THRESHOLD)
+            .waitDurationInOpenState(DEFAULT_WAIT_DURATION_IN_OPEN)
+            .slowCallRateThreshold(DEFAULT_SLOW_CALL_RATE_THRESHOLD)
+            .slowCallDurationThreshold(DEFAULT_SLOW_CALL_DURATION_THRESHOLD)
+            .build();
+
+        var timeLimiterConfig = TimeLimiterConfig.custom()
+            .timeoutDuration(DEFAULT_TIMEOUT_DURATION)
+            .build();
+
         return factory -> factory.configureDefault(id -> new Resilience4JConfigBuilder(id)
-            .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                .slidingWindowSize(10)
-                .permittedNumberOfCallsInHalfOpenState(3)
-                .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofSeconds(30))
-                .slowCallRateThreshold(50)
-                .slowCallDurationThreshold(Duration.ofSeconds(2))
-                .build())
-            .timeLimiterConfig(TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(3))
-                .build())
+            .circuitBreakerConfig(circuitBreakerConfig)
+            .timeLimiterConfig(timeLimiterConfig)
             .build());
-    }
-
-    @Bean
-    public Customizer<ReactiveResilience4JCircuitBreakerFactory> userServiceCustomizer() {
-        return factory -> factory.configure(builder -> builder
-            .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                .slidingWindowSize(10)
-                .permittedNumberOfCallsInHalfOpenState(3)
-                .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofSeconds(30))
-                .minimumNumberOfCalls(5)
-                .build())
-            .timeLimiterConfig(TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(3))
-                .build()), "user-service-cb");
-    }
-
-    @Bean
-    public Customizer<ReactiveResilience4JCircuitBreakerFactory> orderServiceCustomizer() {
-        return factory -> factory.configure(builder -> builder
-            .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                .slidingWindowSize(10)
-                .permittedNumberOfCallsInHalfOpenState(3)
-                .failureRateThreshold(60)
-                .waitDurationInOpenState(Duration.ofSeconds(45))
-                .minimumNumberOfCalls(5)
-                .build())
-            .timeLimiterConfig(TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(5))
-                .build()), "order-service-cb");
-    }
-
-    @Bean
-    public Customizer<ReactiveResilience4JCircuitBreakerFactory> productServiceCustomizer() {
-        return factory -> factory.configure(builder -> builder
-            .circuitBreakerConfig(CircuitBreakerConfig.custom()
-                .slidingWindowSize(15)
-                .permittedNumberOfCallsInHalfOpenState(5)
-                .failureRateThreshold(40)
-                .waitDurationInOpenState(Duration.ofSeconds(20))
-                .minimumNumberOfCalls(8)
-                .build())
-            .timeLimiterConfig(TimeLimiterConfig.custom()
-                .timeoutDuration(Duration.ofSeconds(2))
-                .build()), "product-service-cb");
     }
 }

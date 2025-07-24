@@ -6,6 +6,8 @@ import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.context.annotation.Bean;
 import reactor.core.publisher.Mono;
 
+import java.util.Optional;
+
 @SpringBootApplication
 public class SafeRouteGatewayApplication {
 
@@ -15,21 +17,14 @@ public class SafeRouteGatewayApplication {
 
     @Bean
     public KeyResolver ipKeyResolver() {
-        return exchange -> {
-            String clientIp = exchange.getRequest()
-                .getHeaders()
-                .getFirst("X-Forwarded-For");
-            
-            if (clientIp == null || clientIp.isEmpty()) {
-                if (exchange.getRequest().getRemoteAddress() != null && 
-                    exchange.getRequest().getRemoteAddress().getAddress() != null) {
-                    clientIp = exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
-                } else {
-                    clientIp = "unknown";
-                }
-            }
-            
-            return Mono.just(clientIp);
-        };
+        return exchange -> Mono.just(
+            Optional.ofNullable(exchange.getRequest().getHeaders().getFirst("X-Forwarded-For"))
+                .orElseGet(() -> {
+                    var remoteAddress = exchange.getRequest().getRemoteAddress();
+                    return (remoteAddress != null && remoteAddress.getAddress() != null)
+                        ? remoteAddress.getAddress().getHostAddress()
+                        : "unknown";
+                })
+        );
     }
 }
