@@ -28,9 +28,7 @@ public class SecurityConfig {
                 .pathMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                 .pathMatchers(HttpMethod.GET, "/api/orders/**").permitAll()
                 .pathMatchers(HttpMethod.GET, "/api/products/**").permitAll()
-                
-                // All other requests are allowed for demo purposes
-                .anyExchange().permitAll()
+                .anyExchange().denyAll()
             )
             .build();
     }

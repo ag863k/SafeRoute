@@ -22,7 +22,7 @@ public class GatewayProperties {
     }
 
     public static class Jwt {
-        private String secret = "${JWT_SECRET:changeme123456789abcdefghijklmnopqrstuvwxyz}";
+        private String secret;
         private long expiration = 86400000; // 24 hours
 
         public String getSecret() {
@@ -30,6 +30,9 @@ public class GatewayProperties {
         }
 
         public void setSecret(String secret) {
+            if (secret == null || secret.isBlank()) {
+                throw new IllegalArgumentException("JWT secret must be provided.");
+            }
             this.secret = secret;
         }
 
